@@ -10,7 +10,7 @@ import requests
 # 用于跟踪每个用户的状态，记录用户请求的时间和当前状态
 USER_STATES: Dict[int, Dict[str, float]] = {}
 
-@register("music_search", "Hazellol", "一个交互式音乐搜索插件", "1.0.0")
+@register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.0")
 class MusicSearchPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
