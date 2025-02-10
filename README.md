@@ -1,4 +1,4 @@
-# astrbot_plugin_music
+# astrbot_plugin_music-search
 
 适配AstrBot的交互式歌曲搜索插件
 
