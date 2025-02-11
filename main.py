@@ -1,5 +1,7 @@
-from typing import Dict
 from astrbot.api.all import *
+from astrbot.api.star import Star, register
+from astrbot.api.event import AstrMessageEvent
+from typing import Dict
 import asyncio
 import time
 import subprocess
@@ -9,6 +11,8 @@ import requests
 
 # 用于跟踪每个用户的状态，记录用户请求的时间和当前状态
 USER_STATES: Dict[int, Dict[str, float]] = {}
+
+import dep_check
 
 @register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.0")
 class MusicSearchPlugin(Star):
@@ -64,22 +68,29 @@ class MusicSearchPlugin(Star):
                 # 用户输入歌序号，处理并点歌
                 message = event.message_str.strip()
 
-                # 只处理数字消息并忽略
-                if message.isdigit():
+                # 处理自然语言点歌
+                if "我要听第" in message:
+                    try:
+                        song_number = int(message.split("第")[1].split("首")[0])
+                        song_info = self.get_song_info(song_number)
+                        if song_info:
+                            yield event.plain_result(f"@{event.get_sender_name()} 大人点了第 {song_number} 首歌，都来听！")
+                            async for message in self.download_song(song_info, event):
+                                yield message
+                    except:
+                        yield event.plain_result("请输入正确的歌曲序号")
+                elif message.isdigit():
                     song_number = int(message)
-                    # 获取歌曲信息
                     song_info = self.get_song_info(song_number)
                     if song_info:
                         yield event.plain_result(f"@{event.get_sender_name()} 大人点了第 {song_number} 首歌，都来听！")
-                        # 下载歌曲，并传递 event 参数
                         async for message in self.download_song(song_info, event):
                             yield message
 
-                    # 删除用户状态
-                    if user_id in USER_STATES and USER_STATES[user_id]["state"] == "waiting_song_number":
-                        del USER_STATES[user_id]
-                    return 
-
+                # 删除用户状态
+                if user_id in USER_STATES and USER_STATES[user_id]["state"] == "waiting_song_number":
+                    del USER_STATES[user_id]
+                return
 
     async def process_song_search(self, event: AstrMessageEvent):
         # 处理歌曲搜索逻辑
@@ -229,75 +240,32 @@ class MusicSearchPlugin(Star):
         # 发送消息链
         yield event.chain_result(chain)
 
+    @llm_tool(name="find_song_by_name")
+    async def find_song_by_name(self, event: AstrMessageEvent, song_name: str):
+        '''通过歌曲名称搜索歌曲信息。
 
-
-
-"""
-
-    @command("语音")
-    async def send_voice(self, event: AstrMessageEvent):
-        '''发送语音文件'''
-        # 获取当前文件所在目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        songs_dir = os.path.join(current_dir, "songs")
-        voice_file = os.path.join(songs_dir, "诺言.mp3")
-
-        # 检查文件是否存在
-        if not os.path.exists(voice_file):
-            yield event.plain_result("语音文件不存在，请检查文件路径。")
-            return
-
-        # 构建消息链
-        chain = [
-            
-            Record.fromFileSystem(voice_file)
-        ]
-
-        # 发送消息链
-        yield event.chain_result(chain)
-
-"""
-
-"""
-    @command("转发消息")
-    async def send_forward_message(self, event: AstrMessageEvent):
-        '''发送一条转发消息'''
-        user_id = event.get_sender_id()
-        group_id = event.get_group_id()  # 获取群组ID
-
-    # 动态获取 bot 的名字和 QQ 号
-        bot_name = event.bot.name
-        bot_uin = str(event.bot.uin)
-    # 构造转发消息的内容
-        forward_msg = {
-            "messages": [
-                {
-                    "type": "node",
-                    "data": {
-                        "name": "AstrBot",
-                        "uin": "user_id",
-                        "content": "这是一条转发消息"
-                    }
-                }
-            ]
+        Args:
+            song_name (string): 歌曲名称
+        '''
+        yield event.plain_result(f"正在搜索歌曲《{song_name}》，请稍候...")
+        USER_STATES[event.get_sender_id()] = {
+            "state": "waiting_song_name",
+            "start_time": time.time()
         }
+        async for item in self.process_song_search(event):
+            yield item
 
-        # 如果是群聊，添加 group_id
-        if group_id:
-            forward_msg["group_id"] = group_id
-        else:
-            forward_msg["user_id"] = user_id
+    @llm_tool(name="play_song_by_number")
+    async def play_song_by_number(self, event: AstrMessageEvent, song_number: int):
+        '''通过歌曲序号点播歌曲。
 
-        # 调用 API 发送转发消息
-        if event.get_platform_name() == "aiocqhttp":
-            from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-            assert isinstance(event, AiocqhttpMessageEvent)
-            client = event.bot
-            try:
-                await client.api.call_action("send_group_forward_msg", **forward_msg)
-                yield event.plain_result("好耶！终于可以发送了！")
-            except Exception as e:
-                yield event.plain_result(f"发送转发消息失败: {e}")
+        Args:
+            song_number (number): 歌曲序号
+        '''
+        song_info = self.get_song_info(song_number)
+        if song_info:
+            yield event.plain_result(f"@{event.get_sender_name()} 大人点了第 {song_number} 首歌，都来听！")
+            async for message in self.download_song(song_info, event):
+                yield message
         else:
-            yield event.plain_result("当前平台不支持发送转发消息")
-"""
+            yield event.plain_result("请输入正确的歌曲序号")
