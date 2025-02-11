@@ -1,7 +1,5 @@
-from astrbot.api.all import *
-from astrbot.api.star import Star, register
-from astrbot.api.event import AstrMessageEvent
 from typing import Dict
+from astrbot.api.all import *
 import asyncio
 import time
 import subprocess
@@ -11,8 +9,6 @@ import requests
 
 # 用于跟踪每个用户的状态，记录用户请求的时间和当前状态
 USER_STATES: Dict[int, Dict[str, float]] = {}
-
-import dep_check
 
 @register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.0")
 class MusicSearchPlugin(Star):
@@ -214,15 +210,20 @@ class MusicSearchPlugin(Star):
             filename = f"{title}.mp3".replace("/", "-").replace("\\", "-").replace(":", "-")
             file_path = os.path.join(songs_dir, filename)
             # 下载歌曲
-            response = requests.get(url, stream=True)
-            if response.status_code == 200:
-                with open(file_path, 'wb') as f:
-                    for chunk in response.iter_content(1024):
-                        f.write(chunk)
-                print(f"歌曲 {title} 下载完成，保存到 {file_path}")
-                # 修改为 async for 迭代发送语音
-                async for message in self.send_voice_message(event, file_path):
-                    yield message
+            try:
+                response = requests.get(url, stream=True)
+                if response.status_code == 200:
+                    with open(file_path, 'wb') as f:
+                        for chunk in response.iter_content(1024):
+                            f.write(chunk)
+                    print(f"歌曲 {title} 下载完成，保存到 {file_path}")
+                    # 修改为 async for 迭代发送语音
+                    async for message in self.send_voice_message(event, file_path):
+                        yield message
+                else:
+                    yield event.plain_result("歌曲下载失败，请检查网络连接或歌曲链接")
+            except Exception as e:
+                yield event.plain_result(f"歌曲下载失败，错误信息：{e}")
 
     # 发送语音消息
     async def send_voice_message(self, event: AstrMessageEvent, voice_file_path: str):
@@ -269,3 +270,76 @@ class MusicSearchPlugin(Star):
                 yield message
         else:
             yield event.plain_result("请输入正确的歌曲序号")
+
+
+
+
+"""
+
+    @command("语音")
+    async def send_voice(self, event: AstrMessageEvent):
+        '''发送语音文件'''
+        # 获取当前文件所在目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        songs_dir = os.path.join(current_dir, "songs")
+        voice_file = os.path.join(songs_dir, "诺言.mp3")
+
+        # 检查文件是否存在
+        if not os.path.exists(voice_file):
+            yield event.plain_result("语音文件不存在，请检查文件路径。")
+            return
+
+        # 构建消息链
+        chain = [
+            
+            Record.fromFileSystem(voice_file)
+        ]
+
+        # 发送消息链
+        yield event.chain_result(chain)
+
+"""
+
+"""
+    @command("转发消息")
+    async def send_forward_message(self, event: AstrMessageEvent):
+        '''发送一条转发消息'''
+        user_id = event.get_sender_id()
+        group_id = event.get_group_id()  # 获取群组ID
+
+    # 动态获取 bot 的名字和 QQ 号
+        bot_name = event.bot.name
+        bot_uin = str(event.bot.uin)
+    # 构造转发消息的内容
+        forward_msg = {
+            "messages": [
+                {
+                    "type": "node",
+                    "data": {
+                        "name": "AstrBot",
+                        "uin": "user_id",
+                        "content": "这是一条转发消息"
+                    }
+                }
+            ]
+        }
+
+        # 如果是群聊，添加 group_id
+        if group_id:
+            forward_msg["group_id"] = group_id
+        else:
+            forward_msg["user_id"] = user_id
+
+        # 调用 API 发送转发消息
+        if event.get_platform_name() == "aiocqhttp":
+            from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
+            assert isinstance(event, AiocqhttpMessageEvent)
+            client = event.bot
+            try:
+                await client.api.call_action("send_group_forward_msg", **forward_msg)
+                yield event.plain_result("好耶！终于可以发送了！")
+            except Exception as e:
+                yield event.plain_result(f"发送转发消息失败: {e}")
+        else:
+            yield event.plain_result("当前平台不支持发送转发消息")
+"""
