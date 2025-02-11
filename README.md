@@ -7,6 +7,7 @@ A interactive music-search plugin for AstrBot plugin feature
 ## 指令
 
 - **/找歌**：发送之后在30s之内发送要搜索的歌名，随即根据bot提示进行点歌操作
+- 目前应该支持LLM自然语言搜歌
 
 ## 配置
 
