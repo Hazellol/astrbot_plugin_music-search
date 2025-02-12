@@ -18,6 +18,10 @@ A interactive music-search plugin for AstrBot plugin feature
 - 运行 crawler.py 时发生错误: Command '['python', 'C:\Users\Administrator\Downloads\AstrBotLauncher-0.1.5.5\AstrBotLauncher-0.1.5.5\AstrBot\data\plugins\astrbot_plugin_music_search\crawler.py', '春日影']' returned non-zero exit status 1.
 
 - *解决方法:* 需要运行一下插件目录下的“首次运行请点我.bat”安装requests(能力不足只能这样了awa)
+
+- [botpy] 接口请求异常，请求连接: https://api.sgroup.qq.com/v2/users/4D5708F50112CFFE538CF22D821B2C4B/messages, 错误代码: 400, 返回内容: {'message': '消息发送失败, 不允许发送url crawler.py,crawler.py', 'code': 40054010, 'err_code': 40054010, 'trace_id': '6179d517647e746d945c4e9b075222e1'}, trace_id:6179d517647e746d945c4e9b075222e1
+
+- *原因：*目前不适配QQ官方机器人
 # 开发
 
 - 本人也是初次开发，有不足请包含！
