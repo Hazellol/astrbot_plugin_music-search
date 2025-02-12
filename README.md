@@ -14,6 +14,10 @@ A interactive music-search plugin for AstrBot plugin feature
 
 无需配置，后面应该会更新并完善功能。
 
+# 常见问题
+- 运行 crawler.py 时发生错误: Command '['python', 'C:\Users\Administrator\Downloads\AstrBotLauncher-0.1.5.5\AstrBotLauncher-0.1.5.5\AstrBot\data\plugins\astrbot_plugin_music_search\crawler.py', '春日影']' returned non-zero exit status 1.
+
+- *解决方法:* 需要运行一下插件目录下的“首次运行请点我.bat”安装requests(能力不足只能这样了awa)
 # 开发
 
 - 本人也是初次开发，有不足请包含！
