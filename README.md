@@ -4,6 +4,12 @@
 
 A interactive music-search plugin for AstrBot plugin feature
 
+## 更新
+- 新增自定义等待时长配置面板
+- 将歌曲信息渲染成图片（还在优化）
+- ......
+正在努力更新zzz
+
 ## 指令
 
 - **/找歌**：发送之后在30s之内发送要搜索的歌名，随即根据bot提示进行点歌操作
