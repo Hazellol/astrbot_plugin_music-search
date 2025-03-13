@@ -11,7 +11,7 @@ from jinja2 import Template
 # 用于跟踪每个用户的状态，记录用户请求的时间和当前状态
 USER_STATES: Dict[int, Dict[str, float]] = {}
 
-@register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.1")
+@register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.2")
 class MusicSearchPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
