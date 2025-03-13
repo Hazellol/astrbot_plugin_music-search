@@ -12,8 +12,12 @@ USER_STATES: Dict[int, Dict[str, float]] = {}
 
 @register("astrbot_plugin_music-search", "Hazellol", "一个交互式音乐搜索插件", "1.0.1")
 class MusicSearchPlugin(Star):
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
+        self.config = config
+        # 获取配置中的等待时长，如果没有配置则使用默认值
+        self.song_name_wait_time = self.config.get("song_name_wait_time", 30)
+        self.song_number_wait_time = self.config.get("song_number_wait_time", 10)
 
     # 处理"找歌"命令
     @command("找歌")
@@ -29,22 +33,22 @@ class MusicSearchPlugin(Star):
                 "state": "waiting_song_name",
                 "start_time": time.time()
             }
-            await asyncio.sleep(30)  # 等待30秒
+            await asyncio.sleep(self.song_name_wait_time)  # 使用配置中的等待时长
             # 检查是否超时
             if user_id in USER_STATES and USER_STATES[user_id]["state"] == "waiting_song_name":
                 del USER_STATES[user_id]
-                yield event.plain_result("哼，不想找就不找了啦~ （等待已超时30s）")
+                yield event.plain_result("哼，不想找就不找了啦~ （等待已超时{}s）".format(self.song_name_wait_time))
         else:
             USER_STATES[user_id] = {
                 "state": "waiting_song_name",
                 "start_time": time.time()
             }
             yield event.plain_result("哼，才不想帮你找歌呢，不过你发歌名过来我也可以听听看~")
-            await asyncio.sleep(30)  # 等待30秒
+            await asyncio.sleep(self.song_name_wait_time)  # 使用配置中的等待时长
             # 检查是否超时
             if user_id in USER_STATES and USER_STATES[user_id]["state"] == "waiting_song_name":
                 del USER_STATES[user_id]
-                yield event.plain_result("哼，不想找就不找了啦~ （等待已超时30s）")
+                yield event.plain_result("哼，不想找就不找了啦~ （等待已超时{}s）".format(self.song_name_wait_time))
 
     # 处理所有消息类型的事件
     @event_message_type(EventMessageType.ALL)
@@ -163,7 +167,7 @@ class MusicSearchPlugin(Star):
 
                     # 如果是最后一首歌，添加提示
                     if idx == len(data):
-                        msg_list.append(Plain("\n10秒内发送对应歌曲的序号我就可以帮你点歌~！"))
+                        msg_list.append(Plain("\n{}秒内发送对应歌曲的序号我就可以帮你点歌~！".format(self.song_number_wait_time)))
 
                 # 发送最终的结果
                 yield event.chain_result(msg_list)
@@ -175,9 +179,9 @@ class MusicSearchPlugin(Star):
                     "songs_data": data  # 保存歌曲数据
                 }
 
-                # 启动一个任务，等待10秒后自动清除状态
+                # 启动一个任务，等待指定时长后自动清除状态
                 loop = asyncio.get_running_loop()
-                loop.call_later(10, self.cancel_song_number_input, event.get_sender_id())
+                loop.call_later(self.song_number_wait_time, self.cancel_song_number_input, event.get_sender_id())
 
         except Exception as e:
             yield event.plain_result("呃呃啊，解析不了返回的json......")
@@ -270,76 +274,3 @@ class MusicSearchPlugin(Star):
                 yield message
         else:
             yield event.plain_result("请输入正确的歌曲序号")
-
-
-
-
-"""
-
-    @command("语音")
-    async def send_voice(self, event: AstrMessageEvent):
-        '''发送语音文件'''
-        # 获取当前文件所在目录
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        songs_dir = os.path.join(current_dir, "songs")
-        voice_file = os.path.join(songs_dir, "诺言.mp3")
-
-        # 检查文件是否存在
-        if not os.path.exists(voice_file):
-            yield event.plain_result("语音文件不存在，请检查文件路径。")
-            return
-
-        # 构建消息链
-        chain = [
-            
-            Record.fromFileSystem(voice_file)
-        ]
-
-        # 发送消息链
-        yield event.chain_result(chain)
-
-"""
-
-"""
-    @command("转发消息")
-    async def send_forward_message(self, event: AstrMessageEvent):
-        '''发送一条转发消息'''
-        user_id = event.get_sender_id()
-        group_id = event.get_group_id()  # 获取群组ID
-
-    # 动态获取 bot 的名字和 QQ 号
-        bot_name = event.bot.name
-        bot_uin = str(event.bot.uin)
-    # 构造转发消息的内容
-        forward_msg = {
-            "messages": [
-                {
-                    "type": "node",
-                    "data": {
-                        "name": "AstrBot",
-                        "uin": "user_id",
-                        "content": "这是一条转发消息"
-                    }
-                }
-            ]
-        }
-
-        # 如果是群聊，添加 group_id
-        if group_id:
-            forward_msg["group_id"] = group_id
-        else:
-            forward_msg["user_id"] = user_id
-
-        # 调用 API 发送转发消息
-        if event.get_platform_name() == "aiocqhttp":
-            from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-            assert isinstance(event, AiocqhttpMessageEvent)
-            client = event.bot
-            try:
-                await client.api.call_action("send_group_forward_msg", **forward_msg)
-                yield event.plain_result("好耶！终于可以发送了！")
-            except Exception as e:
-                yield event.plain_result(f"发送转发消息失败: {e}")
-        else:
-            yield event.plain_result("当前平台不支持发送转发消息")
-"""
