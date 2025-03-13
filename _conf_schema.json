@@ -1,0 +1,12 @@
+{
+    "song_name_wait_time": {
+      "description": "用户输入歌名后的等待时长（秒）",
+      "type": "int",
+      "default": 30
+    },
+    "song_number_wait_time": {
+      "description": "点歌操作的等待时长（秒）",
+      "type": "int",
+      "default": 10
+    }
+  }
