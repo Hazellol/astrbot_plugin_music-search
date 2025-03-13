@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>歌曲信息</title>
+    <style>
+        body {
+            background-color: #ADD8E6; /* 淡蓝色背景 */
+            color: black;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-wrap: wrap; /* 允许内容换行 */
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            margin: 0;
+            border-radius: 20px; /* 圆角边框 */
+        }
+        .song-info {
+            background-color: white; /* 白色内容区域 */
+            border-radius: 10px;
+            margin: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0, 0.1); /* 阴影效果 */
+            width: calc(50% - 40px); /* 每行两个项目 */
+            min-width: 200px; /* 最小宽度 */
+        }
+        .song-title {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        .song-author {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .song-details {
+            font-size: 12px;
+        }
+        .song-cover {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px; /* 圆角封面 */
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    {% for song in songs %}
+    <div class="song-info">
+        <img src="{{ song['pic'] }}" alt="封面" class="song-cover">
+        <div class="song-title">{{ song['title'] }}</div>
+        <div class="song-author">{{ song['author'] }}</div>
+        <div class="song-details">
+            平台: {{ song['platform'] }}<br>
+            链接: <a href="{{ song['link'] }}">{{ song['link'] }}</a>
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html>
