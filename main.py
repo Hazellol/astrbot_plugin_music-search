@@ -6,6 +6,7 @@ import subprocess
 import os
 import json
 import requests
+from jinja2 import Template
 
 # 用于跟踪每个用户的状态，记录用户请求的时间和当前状态
 USER_STATES: Dict[int, Dict[str, float]] = {}
@@ -158,7 +159,7 @@ class MusicSearchPlugin(Star):
                                 print(f"下载封面图片失败: {e}")
 
                     # 添加结果到消息列表
-                    msg_list.append(Plain(f"\n✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️\n"))
+                    msg_list.append(Plain(f"\n✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️\n"))
                     msg_list.append(Plain(f"\n{idx}. 🎵歌曲名称：{title}\n"))
                     msg_list.append(Plain(f"    🧑‍🎤歌手：{author}\n"))
                     msg_list.append(Plain(f"    💽平台：{platform}音乐\n"))
@@ -184,7 +185,8 @@ class MusicSearchPlugin(Star):
                 loop.call_later(self.song_number_wait_time, self.cancel_song_number_input, event.get_sender_id())
 
         except Exception as e:
-            yield event.plain_result("呃呃啊，解析不了返回的json......")
+            yield event.plain_result("呃呃呃啊，解析不了返回的json......")
+            print(f"Error processing song search: {e}")
 
     def cancel_song_number_input(self, user_id):
         if user_id in USER_STATES and USER_STATES[user_id]["state"] == "waiting_song_number":
@@ -274,3 +276,102 @@ class MusicSearchPlugin(Star):
                 yield message
         else:
             yield event.plain_result("请输入正确的歌曲序号")
+
+    async def generate_song_info_image(self, event: AstrMessageEvent, songs_data):
+        template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "song_info_template.html")
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+
+            template = Template(template_content)
+            rendered_html = template.render(
+                songs=songs_data
+            )
+
+            image_url = await self.html_render(rendered_html, {})
+            yield event.image_result(image_url)
+        except Exception as e:
+            yield event.plain_result(f"生成歌曲信息图片失败: {e}")
+
+    async def process_song_search(self, event: AstrMessageEvent):
+        song_name = event.message_str.strip()
+        yield event.plain_result(f"好吧，我就帮你找找这首叫《{song_name}》的歌")
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        crawler_path = os.path.join(current_dir, "crawler.py")
+        songs_data_path = os.path.join(current_dir, "songs_data.json")
+        pics_dir = os.path.join(current_dir, "pics")
+
+        if not os.path.exists(crawler_path):
+            yield event.plain_result("错误：crawler.py 文件不存在，请检查文件路径。")
+            return
+
+        try:
+            subprocess.run(["python", crawler_path, song_name], check=True)
+        except subprocess.CalledProcessError as e:
+            yield event.plain_result(f"运行 crawler.py 时发生错误: {e}")
+            return
+
+        if not os.path.exists(songs_data_path):
+            yield event.plain_result("呃呃啊，解析不了返回的json......")
+            return
+
+        if not os.path.exists(pics_dir):
+            os.makedirs(pics_dir)
+
+        try:
+            with open(songs_data_path, 'r', encoding='utf-8') as json_file:
+                json_data = json.load(json_file)
+                data = json_data.get("data", [])
+                if not data:
+                    yield event.plain_result("嗯……没有找到符合要求的歌曲。")
+                    return
+
+                msg_list = [Plain("哈...帮你找歌真是废了我好大的劲呢💦💦......\n")]
+
+                for idx, song in enumerate(data, 1):
+                    title = song.get("title", "未知歌曲")
+                    author = song.get("author", "未知歌手")
+                    pic_url = song.get("pic", "无封面图")
+                    platform = song.get("type", "未知平台")
+                    songid = song.get("songid", "未知ID")
+                    url = song.get("url", "无音频链接")
+
+                    image_path = os.path.join(pics_dir, f"{songid}.jpg")
+                    if pic_url and not os.path.exists(image_path):
+                        try:
+                            response = requests.get(pic_url, stream=True)
+                            if response.status_code == 200:
+                                with open(image_path, 'wb') as f:
+                                    for chunk in response.iter_content(1024):
+                                        f.write(chunk)
+                        except Exception as e:
+                            print(f"下载封面图片失败: {e}")
+
+                    msg_list.append(Plain(f"\n✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️✨️\n"))
+                    msg_list.append(Plain(f"\n{idx}. 🎵歌曲名称：{title}\n"))
+                    msg_list.append(Plain(f"    🧑‍🎤歌手：{author}\n"))
+                    msg_list.append(Plain(f"    💽平台：{platform}音乐\n"))
+                    if os.path.exists(image_path):
+                        msg_list.append(Image.fromFileSystem(image_path))
+
+                    if idx == len(data):
+                        msg_list.append(Plain("\n{}秒内发送对应歌曲的序号我就可以帮你点歌~！".format(self.song_number_wait_time)))
+
+                yield event.chain_result(msg_list)
+
+                async for message in self.generate_song_info_image(event, data):
+                    yield message
+
+                USER_STATES[event.get_sender_id()] = {
+                    "state": "waiting_song_number",
+                    "start_time": time.time(),
+                    "songs_data": data
+                }
+
+                loop = asyncio.get_running_loop()
+                loop.call_later(self.song_number_wait_time, self.cancel_song_number_input, event.get_sender_id())
+
+        except Exception as e:
+            yield event.plain_result("呃呃呃啊，解析不了返回的json......")
+            print(f"Error processing song search: {e}")
