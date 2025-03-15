@@ -18,7 +18,7 @@ A interactive music-search plugin for AstrBot plugin feature
 
 ## 配置
 
-无需配置，后面应该会更新并完善功能。
+- 可以配置bot等待时长
 
 # 常见问题
 - 运行 crawler.py 时发生错误: Command '['python', 'C:\Users\Administrator\Downloads\AstrBotLauncher-0.1.5.5\AstrBotLauncher-0.1.5.5\AstrBot\data\plugins\astrbot_plugin_music_search\crawler.py', '春日影']' returned non-zero exit status 1.
